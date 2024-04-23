@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+
+import { createHelper } from "./src/printHelper.mjs";
+import { resolveArgs } from "./src/arguments.mjs";
+import { readInput } from "./src/inputParser.mjs";
+import { createReporters } from "./src/reporters.mjs"
+import { createCollection } from "./src/collection.mjs";
+import { sourceDataFor } from "./src/tls.mjs";
+import { selectInput, selectOutput } from "./src/ioSelector.mjs";
+import { TerminalRenderer } from "./src/renderer/terminal.mjs";
+import { CsvRenderer } from "./src/renderer/csv.mjs";
+import { TabRenderer } from "./src/renderer/tab.mjs";
+import { createRenderer } from "./src/renderers.mjs";
+import { closeStream, listingExit } from "./src/utils.mjs";
+import { createCursor } from "./src/widgets/cursor.mjs";
+import { ExpirationReport } from "./src/reports/expirations.mjs";
+import { CertificatesReport } from "./src/reports/certificates.mjs";
+
+try {
+  const printer = createHelper();
+  const { inputType, outputType, formatType, reportType, help } = await resolveArgs(printer, process.argv)
+
+  // Shows help and exit
+  if (help) {
+    printer.show();
+  }
+  
+  // Listen for exit
+  listingExit(() => process.exit(1));
+
+  // Resolve IO streams
+  const cursor = createCursor();
+  const output = selectOutput(outputType);
+  const input = selectInput(inputType);
+
+  // Resolve format
+  const renderer = createRenderer(formatType, [
+    new CsvRenderer(),
+    new TerminalRenderer(),
+    new TabRenderer()
+  ]);
+
+  // Setup reporters
+  const reporters = createReporters(reportType, [
+    new ExpirationReport(),
+    new CertificatesReport()
+  ]);
+
+  // Connect data to reporters
+  const collection = createCollection();
+  reporters.connect(collection);
+
+  // Loop and parse input
+  for await (const domain of readInput(input)) {
+    cursor.update(`Fetching ${domain}`);
+    const source = sourceDataFor(domain, 443)
+    await collection.add(source);
+  }
+  cursor.end();
+
+  // Render results
+  // We need to wait the output stream is finished
+  // ot it does not write all the buffer
+  reporters.render(output, renderer);
+  await closeStream(output);
+
+} catch (e) {
+  const printer = createHelper();
+  printer.error(e.message);
+}
+
+// Terminates happily!
+process.exit(0);

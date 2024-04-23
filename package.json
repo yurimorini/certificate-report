@@ -1,0 +1,23 @@
+{
+  "name": "certificate-report",
+  "version": "1.0.0",
+  "description": "Fetches input domain list certificates and shows expirations",
+  "main": "certinfo",
+  "type": "module",
+  "scripts": {
+    "test": "NODE_OPTIONS=\"$NODE_OPTIONS --experimental-vm-modules\" jest",
+    "format": "biome format ./src/* --write"
+  },
+  "author": "Yuri Morini",
+  "license": "MIT",
+  "dependencies": {
+    "minimist": "^1.2.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.7.0",
+    "jest": "^29.7.0"
+  },
+  "bin": {
+    "certinfo" : "./certinfo"
+  }
+}
