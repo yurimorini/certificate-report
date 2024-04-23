@@ -13,7 +13,7 @@ export const isAcceptedDomainName = (domain) => {
 /**
  * Performs a DNS lookup
  */
-const lookupDomain = async (word, timeout = 500) => {
+const lookupDomain = async (word, timeout = 100) => {
   try {
     const resolver = new Resolver({ timeout });
     await resolver.resolve(word);
